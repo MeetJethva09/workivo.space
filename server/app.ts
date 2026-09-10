@@ -4,15 +4,15 @@ import cookieParser from 'cookie-parser';
 import cors from 'cors';
 import { connectDB } from './config/dbConnection.js';
 import userRoutes from './routes/userRoutes.js';
+import productionRoutes from './routes/productionRoutes.js';
 
 dotenv.config();
 const app = express();
-const port = 3000;
 
 
 app.use(
   cors({
-    origin: 'http://localhost:5173/',
+    origin: process.env.ALLOWED_ORIGIN,
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
     allowedHeaders: ['Content-Type', 'Authorization'],
@@ -29,7 +29,8 @@ await connectDB();
 
 // 4. Routes
 app.use('/users', userRoutes);
+app.use('/production', productionRoutes);
 
-app.listen(port, () => {
-  console.log(`Server is running on port ${port}`);
+app.listen(process.env.PORT, () => {
+  console.log(`Server is running on port ${process.env.PORT}`);
 });
