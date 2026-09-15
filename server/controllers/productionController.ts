@@ -17,7 +17,6 @@ export const getProductionByUserId = asyncHandler(
 
     // Find productions by user ID
     const productions = await productionModel.find({ user: userId });
-
     if (!productions || productions.length === 0) {
       res.status(404).json({ message: 'No productions found for this user' });
       return;

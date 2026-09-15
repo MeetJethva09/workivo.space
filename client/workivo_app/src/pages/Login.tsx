@@ -28,7 +28,11 @@ const Login = () => {
           transition: Bounce,
         });
         setTimeout(() => {
-          navigate('/user/dashboard'); // Redirect to the dashboard or desired page
+          if(response.data.user.role === 'admin'){
+            navigate('/admin/dashboard'); // Redirect to the dashboard or desired page
+          }
+          else navigate('/user/dashboard'); // Redirect to the dashboard or desired page
+          
         }, 2000); // 2 seconds delay before redirecting
    
       } else {
