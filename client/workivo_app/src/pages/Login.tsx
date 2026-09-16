@@ -2,7 +2,7 @@ import api from '../api';
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { Link, useNavigate } from 'react-router-dom';
-import {Bounce, toast , ToastContainer} from 'react-toastify'
+import { Bounce, toast, ToastContainer } from 'react-toastify';
 
 const Login = () => {
   const navigate = useNavigate();
@@ -10,12 +10,13 @@ const Login = () => {
   const { register, handleSubmit } = useForm();
 
   const submitHandler = async (data: object) => {
-    
     try {
-      const response = await api.post('/users/login', data);
+      const response = await api.post('/users/login', data, {
+        withCredentials: true,
+      });
       if (response.status === 200) {
-        const shortId = "Yt567gvw23"+response.data.user._id;
-        localStorage.setItem("id", shortId);
+        const shortId = 'Yt567gvw23' + response.data.user._id;
+        localStorage.setItem('id', shortId);
         toast.success('Login success!!', {
           position: 'top-right',
           autoClose: 1700,
@@ -24,26 +25,35 @@ const Login = () => {
           pauseOnHover: true,
           draggable: true,
           progress: undefined,
-          theme: 'light',
+          theme: 'dark',
           transition: Bounce,
         });
         setTimeout(() => {
-          if(response.data.user.role === 'admin'){
+          if (response.data.user.role === 'admin') {
             navigate('/admin/dashboard'); // Redirect to the dashboard or desired page
-          }
-          else navigate('/user/dashboard'); // Redirect to the dashboard or desired page
-          
+          } else navigate('/user/dashboard'); // Redirect to the dashboard or desired page
         }, 2000); // 2 seconds delay before redirecting
-   
-      } else {
-        console.error('Login failed:', response.data);
-        // Handle login failure (e.g., show error message)
       }
-    } catch (error) {
-      console.error('Login failed:', error);
+    } catch (error: unknown) {
+      const err = error as {
+        status?: number;
+        response?: {
+          data?: {
+            message?: string;
+          };
+        };
+      };
+
+      if (err.status === 401) {
+        toast.error(err.response?.data?.message);
+      } else if (err.status === 400) {
+        toast.error(err.response?.data?.message);
+      } else {
+        console.log(err.response);
+        toast.error('Something went wrong');
+      }
     }
   };
-
   return (
     <>
       <ToastContainer
@@ -56,7 +66,7 @@ const Login = () => {
         pauseOnFocusLoss
         draggable
         pauseOnHover
-        theme="light"
+        theme="dark"
         transition={Bounce}
       />
       <div className="min-h-screen bg-neutral-950 text-white">
@@ -155,16 +165,17 @@ const Login = () => {
                 {/* Email / Mobile */}
                 <div>
                   <label
-                    htmlFor="email"
+                    htmlFor="emailOrMobile"
                     className="mb-2 block text-sm font-medium text-neutral-300"
                   >
                     Email or Mobile Number
                   </label>
 
                   <input
-                    id="email"
-                    {...register('email')}
+                    id="emailOrMobile"
+                    {...register('emailOrMobile')}
                     type="text"
+                    required
                     placeholder="Enter email or mobile number"
                     className="h-13 w-full rounded-lg border border-white/10 bg-white/4 px-4 text-sm text-white outline-none transition placeholder:text-neutral-600 focus:border-orange-500 focus:ring-1 focus:ring-orange-500"
                   />
@@ -191,6 +202,7 @@ const Login = () => {
                   <div className="relative">
                     <input
                       id="password"
+                      required
                       {...register('password')}
                       type={showPassword ? 'text' : 'password'}
                       placeholder="Enter your password"

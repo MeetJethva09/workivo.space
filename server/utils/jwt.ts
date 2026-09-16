@@ -14,3 +14,7 @@ export const generateToken = (user : any  ) => {
     const accessToken =  jwt.sign(payload, secretKey, options);
     return accessToken;
 }
+export const verifyToken = (token : string) => {
+    const decodeToken = jwt.verify(token, process.env.JWT_SECRET || 'default_secret_key');
+    return decodeToken;
+}

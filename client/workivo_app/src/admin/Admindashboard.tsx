@@ -1,5 +1,8 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
+import { useForm } from 'react-hook-form';
+import { useQuery } from '@tanstack/react-query';
+import api from '../api';
 
 type Employee = {
   id: number;
@@ -10,80 +13,58 @@ type Employee = {
   isActive: boolean;
 };
 
-const initialEmployees: Employee[] = [
-  {
-    id: 1,
-    name: 'Rahul Patel',
-    mobile: '9876543210',
-    salaryType: 'Per KG',
-    rate: 4.5,
-    isActive: true,
-  },
-  {
-    id: 2,
-    name: 'Amit Shah',
-    mobile: '9876543211',
-    salaryType: 'Per KG',
-    rate: 4.5,
-    isActive: true,
-  },
-  {
-    id: 3,
-    name: 'Vijay Patel',
-    mobile: '9876543212',
-    salaryType: 'Fixed',
-    rate: 320,
-    isActive: true,
-  },
-  {
-    id: 4,
-    name: 'Karan Mehta',
-    mobile: '9876543213',
-    salaryType: 'Dynamic',
-    rate: 0,
-    isActive: true,
-  },
-];
-
 const AdminDashboard = () => {
-  const [employees, setEmployees] = useState<Employee[]>(initialEmployees);
-  const [showAddEmployee, setShowAddEmployee] = useState(false);
+  const { register, handleSubmit, reset, setValue, watch } = useForm({
+    defaultValues: {
+      name: '',
+      mobile: '',
+      salaryType: 'Per KG',
+      rate: '4.50',
+    },
+  });
 
-  const [employeeName, setEmployeeName] = useState('');
-  const [mobile, setMobile] = useState('');
-  const [salaryType, setSalaryType] = useState<'Per KG' | 'Fixed' | 'Dynamic'>(
-    'Per KG',
-  );
-  const [rate, setRate] = useState('4.50');
-
-  const resetForm = () => {
-    setEmployeeName('');
-    setMobile('');
-    setSalaryType('Per KG');
-    setRate('4.50');
-  };
-
-  const handleCreateEmployee = (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-
-    if (!employeeName.trim() || !mobile.trim()) {
-      return;
-    }
-
+  const submitHandler = (data: any) => {
     const newEmployee: Employee = {
       id: Date.now(),
-      name: employeeName.trim(),
-      mobile: mobile.trim(),
-      salaryType,
-      rate: Number(rate) || 0,
+      name: data.name.trim(),
+      mobile: data.mobile.trim(),
+      salaryType: data.salaryType,
+      rate: Number(data.rate) || 0,
       isActive: true,
     };
 
     setEmployees((prev) => [...prev, newEmployee]);
-
-    resetForm();
+    reset({
+      name: '',
+      mobile: '',
+      salaryType: 'Per KG',
+      rate: '4.50',
+    });
     setShowAddEmployee(false);
   };
+
+  const [employees, setEmployees] = useState<Employee[]>([]);
+  const [showAddEmployee, setShowAddEmployee] = useState(false);
+
+  const currentHour = new Date().getHours();
+  const greeting =
+    currentHour >= 5 && currentHour < 12
+      ? 'Good Morning'
+      : currentHour < 18
+        ? 'Good Afternoon'
+        : currentHour < 22
+          ? 'Good Evening'
+          : 'Good Night';
+
+  const { data: users } = useQuery({
+    queryKey: ['users'],
+    queryFn: async () => {
+      const response = await api.get('/users');
+      return response.data;
+    },
+  });
+
+  const employeesList: Employee[] = users?.data
 
   return (
     <div className="min-h-screen bg-neutral-950 text-white">
@@ -93,7 +74,7 @@ const AdminDashboard = () => {
           {/* Logo */}
           <div>
             <h1 className="text-lg font-bold tracking-tight sm:text-xl">
-              PAPER<span className="text-orange-500">CORE</span>
+              MEET <span className="text-orange-500"> PAPER TUBE</span>
             </h1>
 
             <p className="text-[10px] font-medium uppercase tracking-wider text-neutral-500">
@@ -129,11 +110,16 @@ const AdminDashboard = () => {
           <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
             <div>
               <p className="text-sm text-neutral-500">
-                Tuesday, 15 September 2026
+                {new Date().toLocaleDateString('en-US', {
+                  weekday: 'long',
+                  year: 'numeric',
+                  month: 'long',
+                  day: 'numeric',
+                })}
               </p>
 
               <h2 className="mt-1 text-2xl font-bold tracking-tight sm:text-3xl">
-                Good Evening, Admin
+                {`${greeting} , Admin 👋`}
               </h2>
 
               <p className="mt-1 text-sm text-neutral-500">
@@ -167,7 +153,7 @@ const AdminDashboard = () => {
               </div>
             </div>
 
-            <p className="text-2xl font-bold sm:text-3xl">{employees.length}</p>
+            <p className="text-2xl font-bold sm:text-3xl">{employees.length || 0}</p>
 
             <p className="mt-1 text-xs text-neutral-500">Active employees</p>
           </div>
@@ -347,6 +333,7 @@ const AdminDashboard = () => {
                 </thead>
 
                 <tbody>
+                  
                   <tr className="border-b border-neutral-800">
                     <td className="px-5 py-4">
                       <p className="text-sm font-semibold">Rahul Patel</p>
@@ -671,7 +658,7 @@ const AdminDashboard = () => {
             </div>
 
             {/* Form */}
-            <form onSubmit={handleCreateEmployee}>
+            <form onSubmit={handleSubmit(submitHandler)}>
               <div className="space-y-4 px-5 py-5 sm:px-6">
                 {/* Employee Name */}
                 <div>
@@ -681,8 +668,9 @@ const AdminDashboard = () => {
 
                   <input
                     type="text"
-                    value={employeeName}
-                    onChange={(e) => setEmployeeName(e.target.value)}
+                    {...register('name', {
+                      required: 'Employee name is required',
+                    })}
                     placeholder="Enter employee name"
                     className="w-full rounded-xl border border-neutral-700 bg-neutral-950 px-4 py-3 text-sm text-white outline-none transition placeholder:text-neutral-600 focus:border-orange-500 focus:ring-1 focus:ring-orange-500"
                     required
@@ -697,8 +685,9 @@ const AdminDashboard = () => {
 
                   <input
                     type="tel"
-                    value={mobile}
-                    onChange={(e) => setMobile(e.target.value)}
+                    {...register('mobile', {
+                      required: 'Employee mobile is required',
+                    })}
                     placeholder="Enter mobile number"
                     maxLength={10}
                     className="w-full rounded-xl border border-neutral-700 bg-neutral-950 px-4 py-3 text-sm text-white outline-none transition placeholder:text-neutral-600 focus:border-orange-500 focus:ring-1 focus:ring-orange-500"
@@ -712,37 +701,40 @@ const AdminDashboard = () => {
                     Salary Type
                   </label>
 
-                  <select
-                    value={salaryType}
-                    onChange={(e) => {
-                      const value = e.target.value as
-                        | 'Per KG'
-                        | 'Fixed'
-                        | 'Dynamic';
+                  <div className="space-y-3 rounded-xl border border-neutral-700 bg-neutral-950 p-3">
+                    <label className="flex cursor-pointer items-center gap-3 rounded-lg border border-neutral-800 bg-neutral-900 px-3 py-2 transition hover:border-orange-500/40">
+                      <input
+                        type="checkbox"
+                        checked={selectedSalaryType === 'Per KG'}
+                        onChange={() => {
+                          setValue('salaryType', 'Per KG');
+                          setValue('rate', '4.50');
+                        }}
+                        className="h-4 w-4 accent-orange-500"
+                      />
+                      <span className="text-sm text-white">Per KG</span>
+                    </label>
 
-                      setSalaryType(value);
-
-                      if (value === 'Per KG') {
-                        setRate('4.50');
-                      } else if (value === 'Fixed') {
-                        setRate('320');
-                      } else {
-                        setRate('0');
-                      }
-                    }}
-                    className="w-full rounded-xl border border-neutral-700 bg-neutral-950 px-4 py-3 text-sm text-white outline-none transition focus:border-orange-500 focus:ring-1 focus:ring-orange-500"
-                  >
-                    <option value="Per KG">Per KG</option>
-                    <option value="Fixed">Fixed / Day</option>
-                    <option value="Dynamic">Dynamic</option>
-                  </select>
+                    <label className="flex cursor-pointer items-center gap-3 rounded-lg border border-neutral-800 bg-neutral-900 px-3 py-2 transition hover:border-orange-500/40">
+                      <input
+                        type="checkbox"
+                        checked={selectedSalaryType === 'Fixed'}
+                        onChange={() => {
+                          setValue('salaryType', 'Fixed');
+                          setValue('rate', '320');
+                        }}
+                        className="h-4 w-4 accent-orange-500"
+                      />
+                      <span className="text-sm text-white">Fixed Rate</span>
+                    </label>
+                  </div>
                 </div>
 
                 {/* Rate */}
-                {salaryType !== 'Dynamic' && (
+                {selectedSalaryType !== 'Dynamic' && (
                   <div>
                     <label className="mb-1.5 block text-xs font-semibold text-neutral-300">
-                      {salaryType === 'Per KG'
+                      {selectedSalaryType === 'Per KG'
                         ? 'Rate / KG'
                         : 'Fixed Daily Rate'}
                     </label>
@@ -754,8 +746,7 @@ const AdminDashboard = () => {
 
                       <input
                         type="number"
-                        value={rate}
-                        onChange={(e) => setRate(e.target.value)}
+                        {...register('rate', { required: 'Rate is required' })}
                         min="0"
                         step="0.01"
                         className="w-full rounded-xl border border-neutral-700 bg-neutral-950 py-3 pl-9 pr-4 text-sm text-white outline-none transition focus:border-orange-500 focus:ring-1 focus:ring-orange-500"
@@ -789,7 +780,12 @@ const AdminDashboard = () => {
                 <button
                   type="button"
                   onClick={() => {
-                    resetForm();
+                    reset({
+                      name: '',
+                      mobile: '',
+                      salaryType: 'Per KG',
+                      rate: '4.50',
+                    });
                     setShowAddEmployee(false);
                   }}
                   className="flex-1 rounded-xl border border-neutral-700 px-4 py-3 text-sm font-semibold text-neutral-300 transition hover:bg-neutral-800"
@@ -811,5 +807,6 @@ const AdminDashboard = () => {
     </div>
   );
 };
+
 
 export default AdminDashboard;

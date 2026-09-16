@@ -10,29 +10,37 @@ export const createUser = asyncHandler(async (req: Request, res: Response) => {
 });
 
 export const login = asyncHandler(async (req: Request, res: Response) => {
-  const { email, password } = req.body;
+  const { emailOrMobile, password } = req.body;
 
-  // Find the user by email
-  const user = await userModel.findOne({ email }).select('+password');
+  if (!emailOrMobile || !password) {
+    res
+      .status(400)
+      .json({ message: 'Email/mobile  are required!!' });
+    return;
+  }
 
-  if (!user) {
+  const user = await userModel.findOne({
+    $or: [{ email: emailOrMobile }, { mobile: emailOrMobile }],
+  })
+
+  if (!user || !user.password) {
     res.status(400).json({ message: 'User not found!!' });
     return;
   }
-  // Compare the provided password with the stored hashed password
+
   const isPasswordValid = await comparePassword(password, user.password);
   if (!isPasswordValid) {
-    res.status(404).json({ message: 'Invalid password!!' });
+    res.status(401).json({ message: 'Invalid password!!' });
     return;
   }
-  // Generate a JWT token
+
   const token = generateToken(user);
 
-  //store in cookies
   res.cookie('token', token, {
     httpOnly: true,
     sameSite: 'strict',
   });
+
   res.status(200).json({ message: 'Login successful', user, token });
 });
 
@@ -47,5 +55,10 @@ export const getUser = asyncHandler(async (req: Request, res: Response) => {
     return;
   }
 
-  res.status(200).json({ message: "User found", data : user });
+  res.status(200).json({ message: 'User found', data: user });
+});
+
+export const getAllUsers = asyncHandler(async (req: Request, res: Response) => {
+  const users = await userModel.find();
+  res.status(200).json({ message: 'Users found', data: users });
 });

@@ -1,4 +1,4 @@
-
+import { useNavigate } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import api from '../api';
@@ -17,6 +17,7 @@ type Production = {
 };
 
 const UserDashboard = () => {
+  const navigate = useNavigate();
   const [user, setUser] = useState<User | null>(null);
   const [production, setProduction] = useState<Production[]>([]);
   const [todayProduction, setTodayProduction] = useState<Production | null>(
@@ -59,6 +60,10 @@ const UserDashboard = () => {
           ? 'Good Evening'
           : 'Good Night';
 
+  const logoutAction = () => {
+    localStorage.removeItem('id');
+    navigate('/login');
+  };
   return (
     <div className="min-h-screen bg-neutral-950 text-white">
       {/* Header */}
@@ -87,12 +92,14 @@ const UserDashboard = () => {
                 : 'RP'}
             </div>
 
-            <Link
-              to="/login"
+            <button
+              onClick={() => {
+                logoutAction();
+              }}
               className="rounded-lg border border-neutral-700 px-3 py-2 text-xs font-semibold text-neutral-300 transition hover:border-red-500/50 hover:bg-red-500/10 hover:text-red-400 sm:px-4"
             >
               Logout
-            </Link>
+            </button>
           </div>
         </div>
       </header>
@@ -139,7 +146,7 @@ const UserDashboard = () => {
             </p>
 
             <p className="mt-2 text-2xl font-bold text-orange-500 sm:text-3xl">
-              ₹{todayProduction?.amount || "-"}
+              ₹{todayProduction?.amount || '-'}
             </p>
           </div>
 
@@ -162,9 +169,9 @@ const UserDashboard = () => {
             </p>
 
             <p className="mt-2 text-2xl font-bold text-white sm:text-3xl">
-              ₹ {
-                production.reduce((total, item) => total + item.amount, 0)
-              }
+              ₹{' '}
+              {production.reduce((total, item) => total + item.amount, 0) ||
+                '-'}
             </p>
           </div>
         </section>
@@ -228,9 +235,11 @@ const UserDashboard = () => {
               </div>
             </div>
           ) : (
-            <center className='p-2'>
+            <center className="p-2">
               <span className="rounded-xl bg-red-500/10 px-4 text-sm text-red-400 py-2">
-                No production Today!!
+                {production.length > 0
+                  ? 'No production today!!'
+                  : 'No production yet'}
               </span>
             </center>
           )}
@@ -286,43 +295,53 @@ const UserDashboard = () => {
               </thead>
 
               <tbody>
-                {production.map((item, index) => (
-                  <tr
-                    key={item.date}
-                    className={`border-b border-neutral-800 last:border-0 ${
-                      index === 0 ? 'bg-orange-500/5' : ''
-                    }`}
-                  >
-                    <td className="whitespace-nowrap px-4 py-4 text-sm font-medium text-white sm:px-6">
-                      {item.date}
-                      {/* {index === 0 && (
+                {production.length <= 0 ? (
+                  <tr>
+                    <td colSpan={6} className="p-4 text-center">
+                      <span className="rounded-xl bg-red-500/10 px-4 text-sm text-red-400 py-2">
+                        No production yet
+                      </span>
+                    </td>
+                  </tr>
+                ) : (
+                  production.map((item, index) => (
+                    <tr
+                      key={item.date}
+                      className={`border-b border-neutral-800 last:border-0 ${
+                        index === 0 ? 'bg-orange-500/5' : ''
+                      }`}
+                    >
+                      <td className="whitespace-nowrap px-4 py-4 text-sm font-medium text-white sm:px-6">
+                        {item.date}
+                        {/* {index === 0 && (
                         <span className="ml-2 rounded bg-orange-500/10 px-1.5 py-1 text-[10px] font-bold text-orange-400">
                           TODAY
                         </span>
                       )} */}
-                    </td>
+                      </td>
 
-                    <td className="px-4 py-4 text-sm text-neutral-300">
-                      {item.craft} KG
-                    </td>
+                      <td className="px-4 py-4 text-sm text-neutral-300">
+                        {item.craft} KG
+                      </td>
 
-                    <td className="px-4 py-4 text-sm text-neutral-300">
-                      {item.white} KG
-                    </td>
+                      <td className="px-4 py-4 text-sm text-neutral-300">
+                        {item.white} KG
+                      </td>
 
-                    <td className="px-4 py-4 text-sm font-semibold text-white">
-                      {item.total} KG
-                    </td>
+                      <td className="px-4 py-4 text-sm font-semibold text-white">
+                        {item.total} KG
+                      </td>
 
-                    <td className="px-4 py-4 text-sm text-neutral-400">
-                      ₹{item.rate}
-                    </td>
+                      <td className="px-4 py-4 text-sm text-neutral-400">
+                        ₹{item.rate}
+                      </td>
 
-                    <td className="px-4 py-4 text-sm font-bold text-orange-500">
-                      ₹{item.amount}
-                    </td>
-                  </tr>
-                ))}
+                      <td className="px-4 py-4 text-sm font-bold text-orange-500">
+                        ₹{item.amount}
+                      </td>
+                    </tr>
+                  ))
+                )}
               </tbody>
             </table>
           </div>
@@ -341,9 +360,7 @@ const UserDashboard = () => {
 
             <div className="mt-6 flex items-end justify-between">
               <div>
-                <p className="text-3xl font-bold text-white">
-                  monthpro : 12kg
-                </p>
+                <p className="text-3xl font-bold text-white">monthpro : 12kg</p>
 
                 <p className="mt-1 text-sm text-neutral-500">Total KG</p>
               </div>
@@ -374,9 +391,7 @@ const UserDashboard = () => {
               Salary Information
             </p>
 
-            <h3 className="mt-2 text-xl font-bold text-white">
-              Current Month
-            </h3>
+            <h3 className="mt-2 text-xl font-bold text-white">Current Month</h3>
 
             <div className="mt-6 space-y-4">
               <div className="flex items-center justify-between border-b border-neutral-800 pb-4">
@@ -388,9 +403,7 @@ const UserDashboard = () => {
               </div>
 
               <div className="flex items-center justify-between border-b border-neutral-800 pb-4">
-                <span className="text-sm text-neutral-400">
-                  Days worked
-                </span>
+                <span className="text-sm text-neutral-400">Days worked</span>
 
                 <span className="font-semibold text-white">18 Days</span>
               </div>
@@ -442,4 +455,3 @@ const UserDashboard = () => {
 };
 
 export default UserDashboard;
-

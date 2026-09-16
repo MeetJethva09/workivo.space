@@ -4,6 +4,7 @@ import bcrypt from 'bcrypt';
 export interface User {
   name: string;
   email: string;
+  mobile : Number;
   password: string;
   role: 'admin' | 'employee';
   departmentId?: Types.ObjectId;
@@ -17,6 +18,10 @@ const userSchema = new Schema<User>(
       required: true,
       trim: true,
     },
+    mobile : {
+      type: String,
+      required: true,
+    },
     email: {
       type: String,
       required: true,
@@ -27,7 +32,9 @@ const userSchema = new Schema<User>(
     password: {
       type: String,
       required: true,
-      select: false,
+    },
+    salaryType :{
+      type : String,
     },
     role: {
       type: String,
