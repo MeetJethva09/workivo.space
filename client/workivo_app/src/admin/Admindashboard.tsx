@@ -4,17 +4,27 @@ import { useForm } from 'react-hook-form';
 import { useQuery } from '@tanstack/react-query';
 import api from '../api';
 
-type Employee = {
-  id: number;
-  name: string;
-  mobile: string;
-  salaryType: 'Per KG' | 'Fixed' | 'Dynamic';
-  rate: number;
-  isActive: boolean;
-};
+type Productions = {
+  craft: number;
+  white: number;
+  user : any
+  total: number;
+  date : any;
+  rate: 'Per KG' | 'Fixed' | 'Dynamic';
+  amount: number;
+  };
+
+type Users = {
+  name : string
+  email : string
+  phone : number
+  salaryType : string
+  rate : number
+  role : string
+}
 
 const AdminDashboard = () => {
-  const { register, handleSubmit, reset, setValue, watch } = useForm({
+  const { register, handleSubmit, reset, setValue } = useForm({
     defaultValues: {
       name: '',
       mobile: '',
@@ -23,27 +33,9 @@ const AdminDashboard = () => {
     },
   });
 
-  const submitHandler = (data: any) => {
-    const newEmployee: Employee = {
-      id: Date.now(),
-      name: data.name.trim(),
-      mobile: data.mobile.trim(),
-      salaryType: data.salaryType,
-      rate: Number(data.rate) || 0,
-      isActive: true,
-    };
+ 
 
-    setEmployees((prev) => [...prev, newEmployee]);
-    reset({
-      name: '',
-      mobile: '',
-      salaryType: 'Per KG',
-      rate: '4.50',
-    });
-    setShowAddEmployee(false);
-  };
 
-  const [employees, setEmployees] = useState<Employee[]>([]);
   const [showAddEmployee, setShowAddEmployee] = useState(false);
 
   const currentHour = new Date().getHours();
@@ -56,15 +48,31 @@ const AdminDashboard = () => {
           ? 'Good Evening'
           : 'Good Night';
 
-  const { data: users } = useQuery({
-    queryKey: ['users'],
+  const { data: productions } = useQuery({
+    queryKey: ['productions'],
     queryFn: async () => {
-      const response = await api.get('/users');
+      const response = await api.get('/production');
       return response.data;
     },
   });
 
-  const employeesList: Employee[] = users?.data
+
+  const {data : allEmployees} = useQuery({
+    queryKey : ['users'],
+    queryFn : async () =>{
+      const response = await api.get("/users");
+      return response.data;
+    }
+  })
+
+  const productionsList: Productions[] = productions?.data ?? [];
+  const employees: Users[] = allEmployees?.data ?? [];
+  const filterEmployees = employees.filter((employee) => employee.role === 'employee');
+
+  const today = new Date().toISOString().split('T')[0];
+  const todayProductions = productionsList.filter(
+     (prod) => prod.date === today
+  );
 
   return (
     <div className="min-h-screen bg-neutral-950 text-white">
@@ -126,16 +134,6 @@ const AdminDashboard = () => {
                 Here&apos;s your production overview for today.
               </p>
             </div>
-
-            {/* Add Employee */}
-            <button
-              type="button"
-              onClick={() => setShowAddEmployee(true)}
-              className="flex w-full items-center justify-center gap-2 rounded-xl bg-orange-500 px-4 py-3 text-sm font-bold text-white shadow-lg shadow-orange-500/10 transition hover:bg-orange-600 sm:w-auto"
-            >
-              <span className="text-lg leading-none">+</span>
-              Add Employee
-            </button>
           </div>
         </section>
 
@@ -153,7 +151,7 @@ const AdminDashboard = () => {
               </div>
             </div>
 
-            <p className="text-2xl font-bold sm:text-3xl">{employees.length || 0}</p>
+            <p className="text-2xl font-bold sm:text-3xl">{filterEmployees.length}</p>
 
             <p className="mt-1 text-xs text-neutral-500">Active employees</p>
           </div>
@@ -333,31 +331,41 @@ const AdminDashboard = () => {
                 </thead>
 
                 <tbody>
-                  
-                  <tr className="border-b border-neutral-800">
+                   
+                {
+                  todayProductions.length <= 0 ? "no users" : 
+                  todayProductions.map((productions , index)=>{
+                      return (
+
+                  <tr key={index} className="border-b border-neutral-800">
                     <td className="px-5 py-4">
-                      <p className="text-sm font-semibold">Rahul Patel</p>
+                      <p className="text-sm font-semibold">{productions.user?.name}</p>
                       <p className="text-xs text-neutral-500">Production</p>
                     </td>
 
                     <td className="px-5 py-4 text-sm text-neutral-300">
-                      55 KG
+                      {productions?.craft} KG
                     </td>
 
                     <td className="px-5 py-4 text-sm text-neutral-300">
-                      42 KG
+                      {productions?.white} KG
                     </td>
 
-                    <td className="px-5 py-4 text-sm font-semibold">97 KG</td>
+                    <td className="px-5 py-4 text-sm font-semibold">{productions?.total} KG</td>
 
                     <td className="px-5 py-4 text-sm text-orange-400">₹4.50</td>
 
                     <td className="px-5 py-4 text-right text-sm font-bold">
-                      ₹436.50
+                      ₹{productions?.amount.toFixed(2)}
                     </td>
                   </tr>
+                      )
+                  })
+                }
+                
 
-                  <tr className="border-b border-neutral-800">
+
+                  {/* <tr className="border-b border-neutral-800">
                     <td className="px-5 py-4">
                       <p className="text-sm font-semibold">Amit Shah</p>
                       <p className="text-xs text-neutral-500">Production</p>
@@ -424,7 +432,7 @@ const AdminDashboard = () => {
                     <td className="px-5 py-4 text-right text-sm font-bold">
                       ₹702.00
                     </td>
-                  </tr>
+                  </tr> */}
                 </tbody>
               </table>
             </div>
@@ -534,9 +542,9 @@ const AdminDashboard = () => {
           </div>
 
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            {employees.map((employee) => (
+            {filterEmployees.map((employee , index) => (
               <div
-                key={employee.id}
+                key={index}
                 className="rounded-2xl border border-neutral-800 bg-neutral-900 p-4"
               >
                 <div className="flex items-start justify-between gap-3">
@@ -577,11 +585,7 @@ const AdminDashboard = () => {
                     <span className="text-xs text-neutral-500">Rate</span>
 
                     <span className="text-sm font-bold text-orange-400">
-                      {employee.salaryType === 'Per KG'
-                        ? `₹${employee.rate.toFixed(2)} / KG`
-                        : employee.salaryType === 'Fixed'
-                          ? `₹${employee.rate.toFixed(0)} / Day`
-                          : 'Dynamic'}
+                      {employee.salaryType === 'per k/g' ? `₹${employee.rate.toFixed(2)}` : `N/A`}
                     </span>
                   </div>
                 </div>

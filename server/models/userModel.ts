@@ -6,9 +6,9 @@ export interface User {
   email: string;
   mobile : Number;
   password: string;
+  rate : Number;
+  salaryType : string;
   role: 'admin' | 'employee';
-  departmentId?: Types.ObjectId;
-  managerId?: Types.ObjectId;
 }
 
 const userSchema = new Schema<User>(
@@ -35,6 +35,10 @@ const userSchema = new Schema<User>(
     },
     salaryType :{
       type : String,
+    },
+    rate : {
+      type : Number,
+      default : 4.5
     },
     role: {
       type: String,

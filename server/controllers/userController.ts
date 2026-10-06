@@ -18,7 +18,6 @@ export const login = asyncHandler(async (req: Request, res: Response) => {
       .json({ message: 'Email/mobile  are required!!' });
     return;
   }
-
   const user = await userModel.findOne({
     $or: [{ email: emailOrMobile }, { mobile: emailOrMobile }],
   })
@@ -33,28 +32,22 @@ export const login = asyncHandler(async (req: Request, res: Response) => {
     res.status(401).json({ message: 'Invalid password!!' });
     return;
   }
-
   const token = generateToken(user);
-
   res.cookie('token', token, {
     httpOnly: true,
     sameSite: 'strict',
   });
-
   res.status(200).json({ message: 'Login successful', user, token });
 });
 
 export const getUser = asyncHandler(async (req: Request, res: Response) => {
   const userId = req.params.id; // Assuming the user ID is passed as a route parameter
-
   // Find the user by ID
   const user = await userModel.findById(userId);
-
   if (!user) {
     res.status(404).json({ message: 'User not found' });
     return;
   }
-
   res.status(200).json({ message: 'User found', data: user });
 });
 

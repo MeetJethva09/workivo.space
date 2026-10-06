@@ -40,3 +40,10 @@ export const getTodayProductionByUserId = asyncHandler(
   },
 );
 
+export const getAllProductions = asyncHandler(
+  async (req: Request, res: Response) => {
+    const productions = await productionModel.find().populate('user');
+    res.status(200).json({ message: 'All productions found', data: productions });
+  },
+);
+
