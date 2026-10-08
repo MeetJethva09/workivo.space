@@ -2,7 +2,7 @@ import userModel from '../models/userModel.js';
 import asyncHandler from '../utils/asyncHandler.js';
 import { Request, Response } from 'express';
 import { comparePassword } from '../utils/bcryptPassword.js';
-import { generateToken } from '../utils/jwt.js';
+import { generateToken, verifyToken } from '../utils/jwt.js';
 
 export const createUser = asyncHandler(async (req: Request, res: Response) => {
   const user = await userModel.create(req.body);
@@ -55,3 +55,30 @@ export const getAllUsers = asyncHandler(async (req: Request, res: Response) => {
   const users = await userModel.find();
   res.status(200).json({ message: 'Users found', data: users });
 });
+
+export const updateUserPassword = asyncHandler(async (req: Request, res: Response) => {
+  const { newPassword, confirmPassword } = req.body;
+
+  if (newPassword !== confirmPassword) {
+    res.status(400).json({ message: 'Passwords do not match.' });
+    return;
+  }
+
+  const userId = req.user?.id;
+  if (!userId) {
+    res.status(401).json({ message: 'Unauthorized!!' });
+    return;
+  }
+
+  const user = await userModel.findById(userId);
+  if (!user) {
+    res.status(404).json({ message: 'User not found!!' });
+    return;
+  }
+
+  user.password = newPassword;
+  user.mustChangePassword = false;
+  await user.save();
+
+  res.status(200).json({ message: 'Password updated successfully' });
+})

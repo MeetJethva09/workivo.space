@@ -1,42 +1,39 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
-import { useForm } from 'react-hook-form';
-import { useQuery } from '@tanstack/react-query';
+import { Link, useNavigate } from 'react-router-dom';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import api from '../api';
+import { useForm } from 'react-hook-form';
 
 type Productions = {
   craft: number;
   white: number;
-  user : any
+  user: any
   total: number;
-  date : any;
+  date: any;
   rate: 'Per KG' | 'Fixed' | 'Dynamic';
   amount: number;
-  };
+};
 
 type Users = {
-  name : string
-  email : string
-  phone : number
-  salaryType : string
-  rate : number
-  role : string
+  name: string
+  email: string
+  mobile: number
+  salaryType: string
+  rate: number
+  role: string
+}
+
+type UserPayload = {
+  name: string;
+  mobile: string;
+  salaryType: 'Per KG' | 'Fixed' | 'Dynamic';
+  rate: number;
+  password: string;
 }
 
 const AdminDashboard = () => {
-  const { register, handleSubmit, reset, setValue } = useForm({
-    defaultValues: {
-      name: '',
-      mobile: '',
-      salaryType: 'Per KG',
-      rate: '4.50',
-    },
-  });
-
- 
-
-
-  const [showAddEmployee, setShowAddEmployee] = useState(false);
+  const navigate = useNavigate();
+  const [isAddEmployeeOpen, setIsAddEmployeeOpen] = useState(false);
 
   const currentHour = new Date().getHours();
   const greeting =
@@ -57,9 +54,9 @@ const AdminDashboard = () => {
   });
 
 
-  const {data : allEmployees} = useQuery({
-    queryKey : ['users'],
-    queryFn : async () =>{
+  const { data: allEmployees } = useQuery({
+    queryKey: ['users'],
+    queryFn: async () => {
       const response = await api.get("/users");
       return response.data;
     }
@@ -71,8 +68,74 @@ const AdminDashboard = () => {
 
   const today = new Date().toISOString().split('T')[0];
   const todayProductions = productionsList.filter(
-     (prod) => prod.date === today
+    (prod) => prod.date === today
   );
+
+  const logoutAction = () => {
+    localStorage.removeItem('id');
+    navigate('/login');
+  };
+
+  const allValidator = {
+    nameValidator : {
+      required : {
+        value : true,
+        message: "*Field is required!"
+      }
+    },
+    mobileValidator : {
+      required : {
+        value : true,
+        message: "*Field is required!"
+      },
+      minLength : {
+        value : 10,
+        message: "Mobile number must be 10 digits!"
+      },
+      maxLength : {
+        value : 10,
+        message: "Mobile number must be 10 digits!"
+      }
+  },
+    salaryTypeValidator : {
+      required : {
+        value : true,
+        message : "*Field is Required!"
+    }
+  },
+    rateValidator : {
+      required : {
+        value : true,
+        message : "*Field is Required!"
+      }
+    },
+    passwordValidator : {
+      required : {
+        value : true,
+        message : "*Field is required!"
+      }
+    }
+  };
+
+  //Add employee
+  const { register, handleSubmit , reset , formState : {errors} } = useForm<UserPayload>();
+  const queryClient = useQueryClient();
+
+  const submitHandler = (data: UserPayload) => {
+    addUserMutation.mutate(data);
+  };
+  const addUserMutation = useMutation({
+    mutationKey: ['addUser'],
+    mutationFn: async (userPayload: UserPayload) => {
+      const response = await api.post('/users/signup', userPayload);
+      return response.data;
+    },
+     onSuccess: async () => {
+    await queryClient.invalidateQueries({ queryKey: ['users'] });
+    reset();
+    setIsAddEmployeeOpen(false);
+  },
+  });
 
   return (
     <div className="min-h-screen bg-neutral-950 text-white">
@@ -103,7 +166,8 @@ const AdminDashboard = () => {
 
             <button
               type="button"
-              className="hidden rounded-lg border border-neutral-800 px-3 py-2 text-sm font-medium text-neutral-300 transition hover:border-red-500/30 hover:bg-red-500/10 hover:text-red-400 sm:block"
+              onClick={logoutAction}
+              className="rounded-lg border border-neutral-800 px-3 py-2 text-sm font-medium text-neutral-300 transition hover:border-red-500/30 hover:bg-red-500/10 hover:text-red-400"
             >
               Logout
             </button>
@@ -221,9 +285,10 @@ const AdminDashboard = () => {
 
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
             {/* Add Employee */}
+
             <button
               type="button"
-              onClick={() => setShowAddEmployee(true)}
+              onClick={() => setIsAddEmployeeOpen(true)}
               className="group rounded-2xl border border-neutral-800 bg-neutral-900 p-4 text-left transition hover:border-orange-500/40 hover:bg-neutral-900/80"
             >
               <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-xl bg-orange-500/10 text-xl text-orange-400 transition group-hover:bg-orange-500 group-hover:text-white">
@@ -232,10 +297,9 @@ const AdminDashboard = () => {
 
               <p className="text-sm font-bold">Add Employee</p>
 
-              <p className="mt-1 text-xs text-neutral-500">Create employee</p>
+              <p className="mt-1 text-xs text-neutral-500">Add employee in production</p>
             </button>
 
-            {/* Production */}
             <Link
               to="/admin/production"
               className="group rounded-2xl border border-neutral-800 bg-neutral-900 p-4 transition hover:border-orange-500/40 hover:bg-neutral-900/80"
@@ -331,199 +395,113 @@ const AdminDashboard = () => {
                 </thead>
 
                 <tbody>
-                   
-                {
-                  todayProductions.length <= 0 ? "no users" : 
-                  todayProductions.map((productions , index)=>{
-                      return (
 
-                  <tr key={index} className="border-b border-neutral-800">
-                    <td className="px-5 py-4">
-                      <p className="text-sm font-semibold">{productions.user?.name}</p>
-                      <p className="text-xs text-neutral-500">Production</p>
-                    </td>
+                  {
+                    todayProductions.length === 0 ? (
+                      <tr>
+                        <td
+                          colSpan={6}
+                          className="px-5 py-8 text-center text-sm text-neutral-500"
+                        >
+                          No production recorded today!!
+                        </td>
+                      </tr>
+                    ) :
+                      todayProductions.map((productions, index) => {
+                        return (
 
-                    <td className="px-5 py-4 text-sm text-neutral-300">
-                      {productions?.craft} KG
-                    </td>
+                          <tr key={index} className="border-b border-neutral-800">
+                            <td className="px-5 py-4">
+                              <p className="text-sm font-semibold">{productions.user?.name}</p>
+                              <p className="text-xs text-neutral-500">Production</p>
+                            </td>
 
-                    <td className="px-5 py-4 text-sm text-neutral-300">
-                      {productions?.white} KG
-                    </td>
+                            <td className="px-5 py-4 text-sm text-neutral-300">
+                              {productions?.craft} KG
+                            </td>
 
-                    <td className="px-5 py-4 text-sm font-semibold">{productions?.total} KG</td>
+                            <td className="px-5 py-4 text-sm text-neutral-300">
+                              {productions?.white} KG
+                            </td>
 
-                    <td className="px-5 py-4 text-sm text-orange-400">₹4.50</td>
+                            <td className="px-5 py-4 text-sm font-semibold">{productions?.total} KG</td>
 
-                    <td className="px-5 py-4 text-right text-sm font-bold">
-                      ₹{productions?.amount.toFixed(2)}
-                    </td>
-                  </tr>
-                      )
-                  })
-                }
-                
+                            <td className="px-5 py-4 text-sm text-orange-400">₹4.50</td>
 
+                            <td className="px-5 py-4 text-right text-sm font-bold">
+                              ₹{productions?.amount.toFixed(2)}
+                            </td>
+                          </tr>
+                        )
+                      })
+                  }
 
-                  {/* <tr className="border-b border-neutral-800">
-                    <td className="px-5 py-4">
-                      <p className="text-sm font-semibold">Amit Shah</p>
-                      <p className="text-xs text-neutral-500">Production</p>
-                    </td>
-
-                    <td className="px-5 py-4 text-sm text-neutral-300">
-                      48 KG
-                    </td>
-
-                    <td className="px-5 py-4 text-sm text-neutral-300">
-                      51 KG
-                    </td>
-
-                    <td className="px-5 py-4 text-sm font-semibold">99 KG</td>
-
-                    <td className="px-5 py-4 text-sm text-orange-400">₹4.50</td>
-
-                    <td className="px-5 py-4 text-right text-sm font-bold">
-                      ₹445.50
-                    </td>
-                  </tr>
-
-                  <tr className="border-b border-neutral-800">
-                    <td className="px-5 py-4">
-                      <p className="text-sm font-semibold">Vijay Patel</p>
-                      <p className="text-xs text-neutral-500">Production</p>
-                    </td>
-
-                    <td className="px-5 py-4 text-sm text-neutral-300">
-                      65 KG
-                    </td>
-
-                    <td className="px-5 py-4 text-sm text-neutral-300">
-                      38 KG
-                    </td>
-
-                    <td className="px-5 py-4 text-sm font-semibold">103 KG</td>
-
-                    <td className="px-5 py-4 text-sm text-orange-400">₹4.50</td>
-
-                    <td className="px-5 py-4 text-right text-sm font-bold">
-                      ₹463.50
-                    </td>
-                  </tr>
-
-                  <tr>
-                    <td className="px-5 py-4">
-                      <p className="text-sm font-semibold">Karan Mehta</p>
-                      <p className="text-xs text-neutral-500">Production</p>
-                    </td>
-
-                    <td className="px-5 py-4 text-sm text-neutral-300">
-                      72 KG
-                    </td>
-
-                    <td className="px-5 py-4 text-sm text-neutral-300">
-                      84 KG
-                    </td>
-
-                    <td className="px-5 py-4 text-sm font-semibold">156 KG</td>
-
-                    <td className="px-5 py-4 text-sm text-orange-400">₹4.50</td>
-
-                    <td className="px-5 py-4 text-right text-sm font-bold">
-                      ₹702.00
-                    </td>
-                  </tr> */}
                 </tbody>
               </table>
             </div>
 
             {/* Mobile Production Cards */}
             <div className="divide-y divide-neutral-800 sm:hidden">
-              {[
-                {
-                  name: 'Rahul Patel',
-                  craft: 55,
-                  white: 42,
-                  total: 97,
-                  amount: 436.5,
-                },
-                {
-                  name: 'Amit Shah',
-                  craft: 48,
-                  white: 51,
-                  total: 99,
-                  amount: 445.5,
-                },
-                {
-                  name: 'Vijay Patel',
-                  craft: 65,
-                  white: 38,
-                  total: 103,
-                  amount: 463.5,
-                },
-                {
-                  name: 'Karan Mehta',
-                  craft: 72,
-                  white: 84,
-                  total: 156,
-                  amount: 702,
-                },
-              ].map((employee) => (
-                <div key={employee.name} className="p-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm font-bold">{employee.name}</p>
-
-                      <p className="mt-0.5 text-xs text-neutral-500">
-                        Production
-                      </p>
-                    </div>
-
-                    <p className="text-base font-bold text-orange-400">
-                      ₹{employee.amount.toFixed(2)}
-                    </p>
-                  </div>
-
-                  <div className="mt-4 grid grid-cols-3 gap-2">
-                    <div className="rounded-xl bg-neutral-950 p-3">
-                      <p className="text-[10px] uppercase text-neutral-500">
-                        Craft
-                      </p>
-
-                      <p className="mt-1 text-sm font-semibold">
-                        {employee.craft} KG
-                      </p>
-                    </div>
-
-                    <div className="rounded-xl bg-neutral-950 p-3">
-                      <p className="text-[10px] uppercase text-neutral-500">
-                        White
-                      </p>
-
-                      <p className="mt-1 text-sm font-semibold">
-                        {employee.white} KG
-                      </p>
-                    </div>
-
-                    <div className="rounded-xl bg-neutral-950 p-3">
-                      <p className="text-[10px] uppercase text-neutral-500">
-                        Total
-                      </p>
-
-                      <p className="mt-1 text-sm font-semibold">
-                        {employee.total} KG
-                      </p>
-                    </div>
-                  </div>
+              {todayProductions.length === 0 ? (
+                <div className="px-5 py-12 text-center text-sm text-neutral-500">
+                  No production recorded today.
                 </div>
-              ))}
+              ) : (
+                todayProductions.map((production, index) => (
+                  <div key={index} className="p-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm font-bold">
+                          {production.user?.name ?? 'Unknown employee'}
+                        </p>
+                        <p className="mt-0.5 text-xs text-neutral-500">
+                          Production
+                        </p>
+                      </div>
+
+                      <p className="text-base font-bold text-orange-400">
+                        ₹{production.amount.toFixed(2)}
+                      </p>
+                    </div>
+
+                    <div className="mt-4 grid grid-cols-3 gap-2">
+                      <div className="rounded-xl bg-neutral-950 p-3">
+                        <p className="text-[10px] uppercase text-neutral-500">
+                          Craft
+                        </p>
+                        <p className="mt-1 text-sm font-semibold">
+                          {production.craft} KG
+                        </p>
+                      </div>
+
+                      <div className="rounded-xl bg-neutral-950 p-3">
+                        <p className="text-[10px] uppercase text-neutral-500">
+                          White
+                        </p>
+                        <p className="mt-1 text-sm font-semibold">
+                          {production.white} KG
+                        </p>
+                      </div>
+
+                      <div className="rounded-xl bg-neutral-950 p-3">
+                        <p className="text-[10px] uppercase text-neutral-500">
+                          Total
+                        </p>
+                        <p className="mt-1 text-sm font-semibold">
+                          {production.total} KG
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                ))
+              )}
             </div>
           </div>
         </section>
 
         {/* ================= EMPLOYEES ================= */}
         <section className="mt-6">
-          <div className="mb-3 flex items-end justify-between">
+          <div className="mb-3">
             <div>
               <h3 className="text-lg font-bold">Employees</h3>
 
@@ -532,17 +510,10 @@ const AdminDashboard = () => {
               </p>
             </div>
 
-            <button
-              type="button"
-              onClick={() => setShowAddEmployee(true)}
-              className="text-xs font-semibold text-orange-400 hover:text-orange-300"
-            >
-              + Add Employee
-            </button>
           </div>
 
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            {filterEmployees.map((employee , index) => (
+            {filterEmployees.map((employee, index) => (
               <div
                 key={index}
                 className="rounded-2xl border border-neutral-800 bg-neutral-900 p-4"
@@ -585,7 +556,7 @@ const AdminDashboard = () => {
                     <span className="text-xs text-neutral-500">Rate</span>
 
                     <span className="text-sm font-bold text-orange-400">
-                      {employee.salaryType === 'per k/g' ? `₹${employee.rate.toFixed(2)}` : `N/A`}
+                      {employee.salaryType === 'Per KG' ? `₹${employee.rate.toFixed(2)}` : `N/A`}
                     </span>
                   </div>
                 </div>
@@ -632,182 +603,145 @@ const AdminDashboard = () => {
         </div>
       </nav>
 
-      {/* ================= ADD EMPLOYEE MODAL ================= */}
-      {showAddEmployee && (
+      {isAddEmployeeOpen && (
         <div
           className="fixed inset-0 z-50 flex items-end justify-center bg-black/70 p-0 backdrop-blur-sm sm:items-center sm:p-4"
-          onClick={() => setShowAddEmployee(false)}
+          onClick={() => setIsAddEmployeeOpen(false)}
         >
-          <div
+          <section
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="add-employee-title"
             className="w-full rounded-t-3xl border border-neutral-800 bg-neutral-900 shadow-2xl sm:max-w-lg sm:rounded-2xl"
-            onClick={(e) => e.stopPropagation()}
+            onClick={(event) => event.stopPropagation()}
           >
-            {/* Modal Header */}
-            <div className="flex items-center justify-between border-b border-neutral-800 px-5 py-4 sm:px-6">
+            <header className="flex items-center justify-between border-b border-neutral-800 px-5 py-4 sm:px-6">
               <div>
-                <h3 className="text-lg font-bold">Add Employee</h3>
-
+                <h2 id="add-employee-title" className="text-lg font-bold">
+                  Add Employee
+                </h2>
                 <p className="mt-0.5 text-xs text-neutral-500">
-                  Create a new employee account.
+                  Enter the employee details.
                 </p>
               </div>
-
               <button
                 type="button"
-                onClick={() => setShowAddEmployee(false)}
+                aria-label="Close add employee dialog"
+                onClick={() => setIsAddEmployeeOpen(false)}
                 className="flex h-9 w-9 items-center justify-center rounded-full bg-neutral-800 text-lg text-neutral-400 transition hover:bg-neutral-700 hover:text-white"
               >
                 ×
               </button>
-            </div>
+            </header>
 
-            {/* Form */}
-            <form onSubmit={handleSubmit(submitHandler)}>
-              <div className="space-y-4 px-5 py-5 sm:px-6">
-                {/* Employee Name */}
-                <div>
-                  <label className="mb-1.5 block text-xs font-semibold text-neutral-300">
-                    Employee Name
-                  </label>
-
-                  <input
-                    type="text"
-                    {...register('name', {
-                      required: 'Employee name is required',
-                    })}
-                    placeholder="Enter employee name"
-                    className="w-full rounded-xl border border-neutral-700 bg-neutral-950 px-4 py-3 text-sm text-white outline-none transition placeholder:text-neutral-600 focus:border-orange-500 focus:ring-1 focus:ring-orange-500"
-                    required
-                  />
-                </div>
-
-                {/* Mobile */}
-                <div>
-                  <label className="mb-1.5 block text-xs font-semibold text-neutral-300">
-                    Mobile Number
-                  </label>
-
-                  <input
-                    type="tel"
-                    {...register('mobile', {
-                      required: 'Employee mobile is required',
-                    })}
-                    placeholder="Enter mobile number"
-                    maxLength={10}
-                    className="w-full rounded-xl border border-neutral-700 bg-neutral-950 px-4 py-3 text-sm text-white outline-none transition placeholder:text-neutral-600 focus:border-orange-500 focus:ring-1 focus:ring-orange-500"
-                    required
-                  />
-                </div>
-
-                {/* Salary Type */}
-                <div>
-                  <label className="mb-1.5 block text-xs font-semibold text-neutral-300">
-                    Salary Type
-                  </label>
-
-                  <div className="space-y-3 rounded-xl border border-neutral-700 bg-neutral-950 p-3">
-                    <label className="flex cursor-pointer items-center gap-3 rounded-lg border border-neutral-800 bg-neutral-900 px-3 py-2 transition hover:border-orange-500/40">
-                      <input
-                        type="checkbox"
-                        checked={selectedSalaryType === 'Per KG'}
-                        onChange={() => {
-                          setValue('salaryType', 'Per KG');
-                          setValue('rate', '4.50');
-                        }}
-                        className="h-4 w-4 accent-orange-500"
-                      />
-                      <span className="text-sm text-white">Per KG</span>
-                    </label>
-
-                    <label className="flex cursor-pointer items-center gap-3 rounded-lg border border-neutral-800 bg-neutral-900 px-3 py-2 transition hover:border-orange-500/40">
-                      <input
-                        type="checkbox"
-                        checked={selectedSalaryType === 'Fixed'}
-                        onChange={() => {
-                          setValue('salaryType', 'Fixed');
-                          setValue('rate', '320');
-                        }}
-                        className="h-4 w-4 accent-orange-500"
-                      />
-                      <span className="text-sm text-white">Fixed Rate</span>
-                    </label>
-                  </div>
-                </div>
-
-                {/* Rate */}
-                {selectedSalaryType !== 'Dynamic' && (
-                  <div>
-                    <label className="mb-1.5 block text-xs font-semibold text-neutral-300">
-                      {selectedSalaryType === 'Per KG'
-                        ? 'Rate / KG'
-                        : 'Fixed Daily Rate'}
-                    </label>
-
-                    <div className="relative">
-                      <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm text-neutral-500">
-                        ₹
-                      </span>
-
-                      <input
-                        type="number"
-                        {...register('rate', { required: 'Rate is required' })}
-                        min="0"
-                        step="0.01"
-                        className="w-full rounded-xl border border-neutral-700 bg-neutral-950 py-3 pl-9 pr-4 text-sm text-white outline-none transition focus:border-orange-500 focus:ring-1 focus:ring-orange-500"
-                      />
-                    </div>
-                  </div>
+            <form id="add-employee-form" className="space-y-4 px-5 py-5 sm:px-6" onSubmit={handleSubmit(submitHandler)}>
+              <div>
+                <label htmlFor="employee-name" className="mb-1.5 block text-xs font-semibold text-neutral-300">
+                  Employee Name
+                </label>
+                <input
+                  id="employee-name"
+                  type="text"
+                  {...register('name', allValidator.nameValidator)}
+                  placeholder="Enter employee name"
+                  className="w-full rounded-xl border border-neutral-700 bg-neutral-950 px-4 py-3 text-sm text-white outline-none transition placeholder:text-neutral-600 focus:border-orange-500 focus:ring-1 focus:ring-orange-500"
+                />
+                {errors.name && (
+                  <p className="mt-1 text-xs text-red-500">{errors.name.message}</p>
                 )}
-
-                {/* Password Information */}
-                <div className="rounded-xl border border-orange-500/20 bg-orange-500/5 p-3.5">
-                  <div className="flex gap-3">
-                    <div className="mt-0.5 text-orange-400">🔐</div>
-
-                    <div>
-                      <p className="text-xs font-bold text-orange-400">
-                        Employee Password
-                      </p>
-
-                      <p className="mt-1 text-xs leading-5 text-neutral-400">
-                        The employee will create their own password during
-                        account activation. The admin does not need to know
-                        their password.
-                      </p>
-                    </div>
-                  </div>
-                </div>
               </div>
 
-              {/* Footer */}
-              <div className="flex gap-3 border-t border-neutral-800 px-5 py-4 sm:px-6">
-                <button
-                  type="button"
-                  onClick={() => {
-                    reset({
-                      name: '',
-                      mobile: '',
-                      salaryType: 'Per KG',
-                      rate: '4.50',
-                    });
-                    setShowAddEmployee(false);
-                  }}
-                  className="flex-1 rounded-xl border border-neutral-700 px-4 py-3 text-sm font-semibold text-neutral-300 transition hover:bg-neutral-800"
-                >
-                  Cancel
-                </button>
+              <div>
+                <label htmlFor="employee-mobile" className="mb-1.5 block text-xs font-semibold text-neutral-300">
+                  Mobile Number
+                </label>
+                <input
+                  id="employee-mobile"
+                  type="tel"
+                  {...register('mobile' , allValidator.mobileValidator)}
+                  placeholder="Enter mobile number"
+                  maxLength={10}
+                  className="w-full rounded-xl border border-neutral-700 bg-neutral-950 px-4 py-3 text-sm text-white outline-none transition placeholder:text-neutral-600 focus:border-orange-500 focus:ring-1 focus:ring-orange-500"
+                />
+                 {errors.mobile && (
+                  <p className="mt-1 text-xs text-red-500">{errors.mobile.message}</p>
+                )}
+              </div>
 
-                <button
-                  type="submit"
-                  className="flex-1 rounded-xl bg-orange-500 px-4 py-3 text-sm font-bold text-white transition hover:bg-orange-600"
+               <div>
+                <label htmlFor="employee-password" className="mb-1.5 block text-xs font-semibold text-neutral-300">
+                  Password
+                </label>
+                <input
+                  id="employee-password"
+                  type="tel"
+                  {...register('password', allValidator.passwordValidator)}
+                  placeholder="Enter password"
+                  className="w-full rounded-xl border border-neutral-700 bg-neutral-950 px-4 py-3 text-sm text-white outline-none transition placeholder:text-neutral-600 focus:border-orange-500 focus:ring-1 focus:ring-orange-500"
+                />
+                 {errors.password && (
+                  <p className="mt-1 text-xs text-red-500">{errors.password.message}</p>
+                )}
+              </div>
+
+              <div>
+                <label htmlFor="employee-salary-type" className="mb-1.5 block text-xs font-semibold text-neutral-300">
+                  Salary Type
+                </label>
+                <select
+                  id="employee-salary-type"
+                  {...register('salaryType', allValidator.salaryTypeValidator)}
+                  defaultValue="Per KG"
+                  className="w-full rounded-xl border border-neutral-700 bg-neutral-950 px-4 py-3 text-sm text-white outline-none transition focus:border-orange-500 focus:ring-1 focus:ring-orange-500"
                 >
-                  Create Employee
-                </button>
+                   {errors.salaryType && (
+                  <p className="mt-1 text-xs text-red-500">{errors.salaryType.message}</p>
+                )}
+                  <option>Per KG</option>
+                  <option>Fixed</option>
+                  <option>Dynamic</option>
+                </select>
+              </div>
+
+              <div>
+                <label htmlFor="employee-rate" className="mb-1.5 block text-xs font-semibold text-neutral-300">
+                  Rate
+                </label>
+                <input
+                  id="employee-rate"
+                  type="number"
+                  {...register('rate', allValidator.rateValidator)}
+                  min="0"
+                  step="0.01"
+                  placeholder="Enter rate"
+                  className="w-full rounded-xl border border-neutral-700 bg-neutral-950 px-4 py-3 text-sm text-white outline-none transition placeholder:text-neutral-600 focus:border-orange-500 focus:ring-1 focus:ring-orange-500"
+                />
+                 {errors.rate && (
+                  <p className="mt-1 text-xs text-red-500">{errors.rate.message}</p>
+                )}
               </div>
             </form>
-          </div>
+
+            <footer className="flex gap-3 border-t border-neutral-800 px-5 py-4 sm:px-6">
+              <button
+                type="button"
+                onClick={() => setIsAddEmployeeOpen(false)}
+                className="flex-1 rounded-xl border border-neutral-700 px-4 py-3 text-sm font-semibold text-neutral-300 transition hover:bg-neutral-800"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                form="add-employee-form"
+                className="flex-1 rounded-xl bg-orange-500 px-4 py-3 text-sm font-bold text-white transition hover:bg-orange-600"
+              >
+                Create Employee
+              </button>
+            </footer>
+          </section>
         </div>
       )}
+
     </div>
   );
 };

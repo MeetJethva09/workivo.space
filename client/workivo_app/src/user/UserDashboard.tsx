@@ -18,6 +18,7 @@ type Production = {
 
 const UserDashboard = () => {
   const navigate = useNavigate();
+  const [isAddProductionOpen, setIsAddProductionOpen] = useState(false);
   const [user, setUser] = useState<User | null>(null);
   const [production, setProduction] = useState<Production[]>([]);
   const [todayProduction, setTodayProduction] = useState<Production | null>(
@@ -192,10 +193,18 @@ const UserDashboard = () => {
               </p>
             </div>
 
-            <div className="text-right">
-              <p className="text-xs text-neutral-500">Rate</p>
-
-              <p className="font-bold text-orange-500">₹4.50/KG</p>
+            <div className="flex items-center gap-4">
+              <div className="hidden text-right sm:block">
+                <p className="text-xs text-neutral-500">Rate</p>
+                <p className="font-bold text-orange-500">₹4.50/KG</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsAddProductionOpen(true)}
+                className="rounded-lg bg-orange-500 px-3 py-2 text-xs font-bold text-white transition hover:bg-orange-600 sm:px-4 sm:text-sm"
+              >
+                Add Production
+              </button>
             </div>
           </div>
 
@@ -307,9 +316,8 @@ const UserDashboard = () => {
                   production.map((item, index) => (
                     <tr
                       key={item.date}
-                      className={`border-b border-neutral-800 last:border-0 ${
-                        index === 0 ? 'bg-orange-500/5' : ''
-                      }`}
+                      className={`border-b border-neutral-800 last:border-0 ${index === 0 ? 'bg-orange-500/5' : ''
+                        }`}
                     >
                       <td className="whitespace-nowrap px-4 py-4 text-sm font-medium text-white sm:px-6">
                         {item.date}
@@ -433,13 +441,14 @@ const UserDashboard = () => {
             <span className="text-[10px] font-semibold">Home</span>
           </Link>
 
-          <Link
-            to="/production"
+          <button
+            type="button"
+            onClick={() => setIsAddProductionOpen(true)}
             className="flex flex-col items-center gap-1 py-3 text-neutral-500"
           >
             <span className="text-lg">＋</span>
-            <span className="text-[10px] font-semibold">Production</span>
-          </Link>
+            <span className="text-[10px] font-semibold">Add Production</span>
+          </button>
 
           <Link
             to="/salary"
@@ -450,6 +459,106 @@ const UserDashboard = () => {
           </Link>
         </div>
       </nav>
+
+      {isAddProductionOpen && (
+        <div
+          className="fixed inset-0 z-50 flex items-end justify-center bg-black/70 p-0 backdrop-blur-sm sm:items-center sm:p-4"
+          onClick={() => setIsAddProductionOpen(false)}
+        >
+          <section
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="add-production-title"
+            className="w-full rounded-t-3xl border border-neutral-800 bg-neutral-900 shadow-2xl sm:max-w-lg sm:rounded-2xl"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <header className="flex items-center justify-between border-b border-neutral-800 px-5 py-4 sm:px-6">
+              <div>
+                <h2 id="add-production-title" className="text-lg font-bold">
+                  Add Production
+                </h2>
+                <p className="mt-0.5 text-xs text-neutral-500">
+                  Enter today&apos;s production details.
+                </p>
+              </div>
+              <button
+                type="button"
+                aria-label="Close add production dialog"
+                onClick={() => setIsAddProductionOpen(false)}
+                className="flex h-9 w-9 items-center justify-center rounded-full bg-neutral-800 text-lg text-neutral-400 transition hover:bg-neutral-700 hover:text-white"
+              >
+                ×
+              </button>
+            </header>
+
+            <form className="space-y-4 px-5 py-5 sm:px-6">
+              <div>
+                <label
+                  htmlFor="production-date"
+                  className="mb-1.5 block text-xs font-semibold text-neutral-300"
+                >
+                  Production Date
+                </label>
+                <input
+                  id="production-date"
+                  type="date"
+                  className="w-full rounded-xl border border-neutral-700 bg-neutral-950 px-4 py-3 text-sm text-white outline-none transition focus:border-orange-500 focus:ring-1 focus:ring-orange-500"
+                />
+              </div>
+
+              <div>
+                <label
+                  htmlFor="production-craft"
+                  className="mb-1.5 block text-xs font-semibold text-neutral-300"
+                >
+                  Craft (KG)
+                </label>
+                <input
+                  id="production-craft"
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  placeholder="Enter craft quantity"
+                  className="w-full rounded-xl border border-neutral-700 bg-neutral-950 px-4 py-3 text-sm text-white outline-none transition placeholder:text-neutral-600 focus:border-orange-500 focus:ring-1 focus:ring-orange-500"
+                />
+              </div>
+
+              <div>
+                <label
+                  htmlFor="production-white"
+                  className="mb-1.5 block text-xs font-semibold text-neutral-300"
+                >
+                  White (KG)
+                </label>
+                <input
+                  id="production-white"
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  placeholder="Enter white quantity"
+                  className="w-full rounded-xl border border-neutral-700 bg-neutral-950 px-4 py-3 text-sm text-white outline-none transition placeholder:text-neutral-600 focus:border-orange-500 focus:ring-1 focus:ring-orange-500"
+                />
+              </div>
+            </form>
+
+            <footer className="flex gap-3 border-t border-neutral-800 px-5 py-4 sm:px-6">
+              <button
+                type="button"
+                onClick={() => setIsAddProductionOpen(false)}
+                className="flex-1 rounded-xl border border-neutral-700 px-4 py-3 text-sm font-semibold text-neutral-300 transition hover:bg-neutral-800"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="flex-1 rounded-xl bg-orange-500 px-4 py-3 text-sm font-bold text-white transition hover:bg-orange-600"
+              >
+                Save Production
+              </button>
+            </footer>
+          </section>
+        </div>
+      )}
     </div>
   );
 };

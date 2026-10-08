@@ -3,11 +3,12 @@ import bcrypt from 'bcrypt';
 
 export interface User {
   name: string;
-  email: string;
+  email?: string;
   mobile : Number;
   password: string;
   rate : Number;
   salaryType : string;
+  mustChangePassword: boolean;
   role: 'admin' | 'employee';
 }
 
@@ -24,14 +25,12 @@ const userSchema = new Schema<User>(
     },
     email: {
       type: String,
-      required: true,
-      unique: true,
       lowercase: true,
       trim: true,
     },
     password: {
       type: String,
-      required: true,
+      required : true
     },
     salaryType :{
       type : String,
@@ -39,6 +38,10 @@ const userSchema = new Schema<User>(
     rate : {
       type : Number,
       default : 4.5
+    },
+    mustChangePassword: {
+      type: Boolean,
+      default: true,
     },
     role: {
       type: String,
@@ -58,5 +61,4 @@ userSchema.pre('save', async function () {
 });
 
 const UserModel = model<User>('User', userSchema);
-
 export default UserModel;

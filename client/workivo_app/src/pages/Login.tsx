@@ -7,14 +7,19 @@ import { Bounce, toast, ToastContainer } from 'react-toastify';
 const Login = () => {
   const navigate = useNavigate();
   const [showPassword, setShowPassword] = useState(false);
-  const { register, handleSubmit } = useForm();
+  const { register, handleSubmit, formState: { errors } } = useForm();
 
   const submitHandler = async (data: object) => {
     try {
       const response = await api.post('/users/login', data, {
         withCredentials: true,
       });
+      const changePass = response.data.user.mustChangePassword;
       if (response.status === 200) {
+        if(changePass){
+          navigate('/reset-password');
+          return;
+        }
         const shortId = 'Yt567gvw23' + response.data.user._id;
         localStorage.setItem('id', shortId);
         toast.success('Login success!!', {
